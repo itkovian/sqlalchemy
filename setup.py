@@ -11,6 +11,26 @@ from setuptools import setup
 from setuptools import find_packages
 from setuptools.command.test import test as TestCommand
 
+try:
+    import vsc.install.shared_setup as shared_setup
+    from vsc.install.shared_setup import ag
+except ImportError:
+    print "vsc.install could not be found, make sure a recent vsc-base is installed"
+    print "you might want to try 'easy_install [--user] https://github.com/hpcugent/vsc-base/archive/master.tar.gz'"
+
+
+def remove_bdist_rpm_source_file():
+    """List of files to remove from the (source) RPM."""
+    return ['lib/vsc/__init__.py']
+
+
+shared_setup.remove_extra_bdist_rpm_files = remove_bdist_rpm_source_file
+shared_setup.SHARED_TARGET.update({
+    'url': 'https://github.ugent.be/hpcugent/vsc-config',
+    'download_url': 'https://github.ugent.be/hpcugent/vsc-config'
+})
+
+
 cmdclass = {}
 if sys.version_info < (2, 6):
     raise Exception("SQLAlchemy requires Python 2.6 or higher.")
@@ -119,73 +139,31 @@ with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as r_file:
     readme = r_file.read()
 
 
-def run_setup(with_cext):
-    kwargs = {}
-    if with_cext:
-        kwargs['ext_modules'] = ext_modules
-    else:
-        kwargs['ext_modules'] = []
-
-    setup(
-        name="SQLAlchemy",
-        version=VERSION,
-        description="Database Abstraction Library",
-        author="Mike Bayer",
-        author_email="mike_mp@zzzcomputing.com",
-        url="http://www.sqlalchemy.org",
-        packages=find_packages('lib'),
-        package_dir={'': 'lib'},
-        license="MIT License",
-        cmdclass=cmdclass,
-        tests_require=['pytest >= 2.5.2', 'mock', 'pytest-xdist'],
-        long_description=readme,
-        classifiers=[
-            "Development Status :: 5 - Production/Stable",
-            "Intended Audience :: Developers",
-            "License :: OSI Approved :: MIT License",
-            "Programming Language :: Python",
-            "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: Implementation :: CPython",
-            "Programming Language :: Python :: Implementation :: Jython",
-            "Programming Language :: Python :: Implementation :: PyPy",
-            "Topic :: Database :: Front-Ends",
-            "Operating System :: OS Independent",
-        ],
-        distclass=Distribution,
-        **kwargs
-    )
-
-if not cpython:
-    run_setup(False)
-    status_msgs(
-        "WARNING: C extensions are not supported on " +
-        "this Python platform, speedups are not enabled.",
-        "Plain-Python build succeeded."
-    )
-elif os.environ.get('DISABLE_SQLALCHEMY_CEXT'):
-    run_setup(False)
-    status_msgs(
-        "DISABLE_SQLALCHEMY_CEXT is set; " +
-        "not attempting to build C extensions.",
-        "Plain-Python build succeeded."
-    )
-
-else:
-    try:
-        run_setup(True)
-    except BuildFailed as exc:
-        status_msgs(
-            exc.cause,
-            "WARNING: The C extension could not be compiled, " +
-            "speedups are not enabled.",
-            "Failure information, if any, is above.",
-            "Retrying the build without the C extension now."
-        )
-
-        run_setup(False)
-
-        status_msgs(
-            "WARNING: The C extension could not be compiled, " +
-            "speedups are not enabled.",
-            "Plain-Python build succeeded."
-        )
+PACKAGE = {
+    "name": "sqlalchemy",
+    "version": VERSION,
+    "description": "Database Abstraction Library",
+    "author": ["Mike Bayer",],
+    "author_email": "mike_mp@zzzcomputing.com",
+    "maintainer": [ag,],
+    "url": "http://www.sqlalchemy.org",
+    "packages": find_packages('lib'),
+    "package_dir": {'': 'lib'},
+    "license": "MIT License",
+    "cmdclass": cmdclass,
+    "tests_require": ['pytest >= 2.5.2', 'mock', 'pytest-xdist'],
+    "long_description": readme,
+    "classifiers": [
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: Jython",
+        "Programming Language :: Python :: Implementation :: PyPy",
+        "Topic :: Database :: Front-Ends",
+        "Operating System :: OS Independent",
+    ],
+}
+shared_setup.action_target(PACKAGE)
